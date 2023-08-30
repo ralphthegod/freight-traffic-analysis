@@ -1,0 +1,40 @@
+# Python-related
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+venv/
+env/
+*.env
+
+# Neo4j-related
+/data/
+/logs/
+/neostore
+
+# MongoDB-related
+/data/
+/dbpath/
+/mongod.lock
+/mongod.log
+/wiredTiger
+*.wt
+/journal
+
+# Editor/IDE-specific
+.vscode/
+.idea/
+
+# Compiled files
+*.class
+*.jar
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Virtual environment
+env/
