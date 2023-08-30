@@ -1,0 +1,58 @@
+version: '3.5'
+
+services:
+
+  neo4j:
+    image: neo4j:4.1
+    hostname: neo4j
+    container_name: neo4j
+    ports:
+      - 7474:7474
+      - 7687:7687
+    environment:
+      - "NEO4J_ACCEPT_LICENSE_AGREEMENT=yes"
+      - "NEO4J_AUTH=neo4j/trullodio"
+      - NEO4JLABS_PLUGINS=["apoc"]
+      - NEO4J_dbms_security_procedures_unrestricted=apoc.\\\*
+    volumes:
+      - ./neo4j/plugins:/plugins 
+      - ./neo4j/data:/data
+
+  mongo:
+    image: mongo:5.0
+    container_name: mongo
+    depends_on:
+      - neo4j
+    hostname: mongo
+    volumes:
+      - ./mongo:/data/db
+    ports:
+      - 27017:27017
+
+  init:
+    build: 
+      context: .
+      dockerfile: Dockerfile.init
+    container_name: init
+    depends_on:
+      - mongo
+    ports:
+      - 5000:5000
+    volumes:
+      - ./init/datasets:/app/datasets
+      - ./init/main.py:/app/main.py
+      - ./init/init.py:/app/init.py
+      - ./init/utils.py:/app/utils.py
+      - ./init/.env:/app/.env
+
+  mongo-express:
+    image: mongo-express 
+    container_name: mongo-express
+    hostname: mongo-express
+    depends_on:
+      - mongo
+    ports:
+      - 8081:8081
+
+  
+

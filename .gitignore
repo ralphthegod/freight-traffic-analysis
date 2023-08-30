@@ -27,7 +27,6 @@ env/
 
 # Compiled files
 *.class
-*.jar
 
 # OS-specific
 .DS_Store

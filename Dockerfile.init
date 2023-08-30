@@ -1,0 +1,10 @@
+FROM python
+
+RUN pip install --upgrade pip
+RUN pip install pandas pymongo asyncio neo4j python-dotenv
+
+WORKDIR /app
+
+CMD ["ls"]
+
+CMD ["python3","main.py"]
