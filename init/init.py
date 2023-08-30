@@ -136,7 +136,7 @@ async def load_data_neo4j(driver):
         ]
         ) YIELD value
         MERGE (s:Street {{id: street}})
-        ON CREATE SET s.traffic_max = value.traffic_maX, s.traffic_mean = value.traffic_mean, s.traffic_sum = value.traffic_sum, s.velocity_mean = value.velocity_mean, s.velocity_max = value.velocity_max
+        ON CREATE SET s.traffic_max = value.traffic_max, s.traffic_mean = value.traffic_mean, s.traffic_sum = value.traffic_sum, s.velocity_mean = value.velocity_mean, s.velocity_max = value.velocity_max
         """
     with driver.session() as session:
             res = session.run(query)
