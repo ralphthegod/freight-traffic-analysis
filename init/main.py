@@ -1,6 +1,6 @@
 from pymongo import MongoClient
 from neo4j import GraphDatabase
-from init import load_data
+from init import load_data, load_data_neo4j_traffic
 from dotenv import load_dotenv
 import os
 import asyncio

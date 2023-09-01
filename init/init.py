@@ -2,6 +2,8 @@ import json
 from random import random
 import pandas as pd
 import time
+
+from pymongo import ASCENDING, DESCENDING, IndexModel
 from utils import street_to_coords, get_docs_from_csv
 import os
 
@@ -9,15 +11,15 @@ dataset_dir = "./datasets"
 
 cities = []
 
-#find json but in subdirectory
 for subdir, dirs, files in os.walk(dataset_dir):
     if subdir == dataset_dir:
         continue
     for file_name in files:
         file_path = os.path.join(subdir, file_name)
         if os.path.isfile(file_path) and file_name.endswith('.json'):
-            cities.append({"name": file_name[:-5], "data": json.load(open(file_path))})
-            print(f"Loaded {file_name}")
+            #set the name as the folder name
+            cities.append({"name": os.path.basename(subdir), "data": json.load(open(file_path))})
+            print(f"Loaded {file_name} as {os.path.basename(subdir)}")
 
 cities_doc = []
 
@@ -36,14 +38,26 @@ for subdir, dirs, files in os.walk(dataset_dir):
     csvs[os.path.basename(subdir)] = [os.path.join(subdir, file) for file in files if file.endswith('.csv')]
     print(f"Loaded {os.path.basename(subdir)}")
 
-def iterate_csvs(year_file):
+def iterate_csvs(year_file, dataset_name):
     all_event_docs = []
     for i in range(len(year_file)):
         parts = year_file[i].split('_')
         year = parts[-1][:4]
-        event_docs = get_docs_from_csv(year_file[i])
+        event_docs = get_docs_from_csv(year_file[i], dataset_name)
         all_event_docs.extend(event_docs)
     return all_event_docs
+
+async def load_data_file():
+    print("Loading data to file...")
+    with open("./datasets/output/polygons.json", "w") as f:
+        json.dump(cities_doc, f)
+
+    for property_name, year_file in csvs.items():
+        street_docs, event_docs = iterate_csvs(year_file)
+        with open(f"./datasets/output/{property_name}.json", "w") as f:
+            json.dump(street_docs, f)
+        with open(f"./datasets/output/{property_name}_traffic_events.json", "w") as f:
+            json.dump(event_docs, f)
 
 async def load_data_mongo(mongo_client):
     print("Loading data to mongo...")
@@ -62,26 +76,39 @@ async def load_data_mongo(mongo_client):
             )
     
     for property_name, year_file in csvs.items():
-        event_docs = iterate_csvs(year_file)
+        event_docs = iterate_csvs(year_file, property_name)
         mongo_client["ftd"]["traffic_events"].insert_many(event_docs)
     
-    mongo_client["ftd"]["traffic_events"].create_index("metadata.streetId")
-        
-
-async def load_data_file():
-    print("Loading data to file...")
-    with open("./datasets/output/polygons.json", "w") as f:
-        json.dump(cities_doc, f)
-
-    for property_name, year_file in csvs.items():
-        street_docs, event_docs = iterate_csvs(year_file)
-        with open(f"./datasets/output/{property_name}.json", "w") as f:
-            json.dump(street_docs, f)
-        with open(f"./datasets/output/{property_name}_traffic_events.json", "w") as f:
-            json.dump(event_docs, f)
+    index1 = IndexModel([("metadata.streetId", ASCENDING),("metadata.dataset", ASCENDING)])
+    mongo_client["ftd"]["traffic_events"].create_indexes([index1])
             
 
-async def load_data_neo4j(driver):
+async def load_data_neo4j_traffic(driver, mongo_client, streets):
+    if streets == None:
+        street_query = """
+            MATCH (s:Street)
+            RETURN s.id AS id
+        """
+        with driver.session() as session:
+            res = session.run(street_query)
+            streets = [record['id'] for record in res]
+
+    for street in streets:
+        dataset = street.split('_')[0]
+        street_id = street.split('_')[1]
+        print("Neo4j: loading traffic data for " + street_id + "("+dataset+")")
+        events = mongo_client['ftd']['traffic_events'].find({"metadata.dataset": dataset, "metadata.streetId": int(street_id) })
+        for event in events:
+            query = f"""
+                MATCH (s:Street {{id: '{street}'}})
+                WITH datetime({{epochmillis: apoc.date.parse("{event['timestamp']}", "ms", "yyyy-MM-dd HH:mm:ss")}}) AS date, s
+                MERGE (t:Timestamp {{year: date.year, month: date.month, day: date.day, hour: date.hour, minute: date.minute}})
+                MERGE (s)-[e:HAS_EVENT {{traffic: {event['traffic']}, velocity: {event['velocity']}}}]->(t)
+            """
+            with driver.session() as session:
+                res = session.run(query)
+
+async def load_data_neo4j(driver, mongo_client):
     # Upload road network geometry
     for city in cities_doc:
         city_name = city["name"]
@@ -91,12 +118,9 @@ async def load_data_neo4j(driver):
             UNWIND range(0, size(streets)-1) AS id
             WITH streets[id] AS current, id
             UNWIND range(0, size(current.coords)-2) AS coord_id 
-            WITH current.coords[coord_id] AS current_c, current.coords[coord_id+1] AS next_c, id
-            MERGE (c1:Coordinate {{latitude: current_c[1], longitude: current_c[0]}}) 
-            MERGE (c2:Coordinate {{latitude: next_c[1], longitude: next_c[0]}}) 
-            MERGE (c1)-[s:Segment]->(c2) 
-            ON CREATE SET s.street_id = id
-            ON MATCH SET s.street_id = id
+            WITH current.coords[coord_id] AS current_c, current.coords[coord_id+1] AS next_c, id, coord_id
+            MERGE (s:Street {{id: '{city_name}_' + id}})
+            MERGE (s)-[c:MADE_OF {{order: coord_id}}]->(seg:Segment {{start_coordinates: [current_c[1], current_c[0]], end_coordinates: [next_c[1], next_c[0]]}})
         """
         with driver.session() as session:
             res = session.run(query)
@@ -110,52 +134,30 @@ async def load_data_neo4j(driver):
                 print("Neo4j: no data added.")
             print("Neo4j: query executed for " + city_name)
     
-    # Upload road metadata
-    query = f"""
-        MATCH (c1)-[seg:Segment]->(c2)
-        WITH COLLECT(DISTINCT seg.street_id) as streets
-        UNWIND streets AS street
-        CALL apoc.mongo.aggregate(
-        'mongodb://mongo:27017/ftd.traffic_events',
-        [
-            {{
-            `$match`: {{
-                `metadata.streetId`: street
-            }}
-            }},
-            {{
-            `$group`: {{
-                `_id`: null,
-                `velocity_max`: {{ `$max`: "$velocity" }},
-                `velocity_mean`: {{ `$avg`: "$velocity" }},
-                `traffic_max`: {{ `$max`: "$traffic" }},
-                `traffic_mean`: {{ `$avg`: "$traffic" }},
-                `traffic_sum`: {{ `$sum`: "$traffic" }}
-            }}
-            }}
-        ]
-        ) YIELD value
-        MERGE (s:Street {{id: street}})
-        ON CREATE SET s.traffic_max = value.traffic_max, s.traffic_mean = value.traffic_mean, s.traffic_sum = value.traffic_sum, s.velocity_mean = value.velocity_mean, s.velocity_max = value.velocity_max
-        """
-    with driver.session() as session:
-            res = session.run(query)
-            stats = res.consume().counters
-            nodes_created = stats.nodes_created
-            relationships_created = stats.relationships_created
+    streets = []
 
-            if nodes_created > 0 or relationships_created > 0:
-                print("Neo4j: data added.")
-            else:
-                print("Neo4j: no data added.")
-            print("Neo4j: query executed for metadata")
-    
+    street_query = """
+        MATCH (s:Street)
+        RETURN s.id AS id
+    """
+    with driver.session() as session:
+        res = session.run(street_query)
+        streets = [record['id'] for record in res]
+
+    # Create Index on Street
+    index_query = """
+        CREATE INDEX street_id_index FOR (n:Street) ON (n.id)
+    """
+    with driver.session() as session:
+        res = session.run(index_query)
+
+    await load_data_neo4j_traffic(driver, mongo_client, streets)
 
 
 async def load_data(mongo_client, neo4j_driver):
     if mongo_client is not None:
         await load_data_mongo(mongo_client)
-        await load_data_neo4j(neo4j_driver)
+        await load_data_neo4j(neo4j_driver, mongo_client)
     elif neo4j_driver is not None:
         await load_data_neo4j(neo4j_driver)
     else:

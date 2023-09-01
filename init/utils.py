@@ -31,11 +31,11 @@ def get_isoformat_date(dt):
     d = datetime.datetime(datetime_dict['year'], datetime_dict['month'], datetime_dict['day'], datetime_dict['hour'], datetime_dict['minute'], 0, 0)
     return d
 
-def get_events(group_name, group_data):
+def get_events(group_name, group_data, dataset_name):
     events = []
     for index, row in group_data.iterrows():
         event = {
-            'metadata': { "streetId": group_name },
+            'metadata': { "streetId": group_name, "dataset": dataset_name },
             'timestamp': get_isoformat_date(row['datetime']),
             'traffic': row['traffic'],
             'velocity': row['velocity']
@@ -43,19 +43,19 @@ def get_events(group_name, group_data):
         events.append(event)
     return events
 
-def get_doc_from_dataframe(grouped_df):
+def get_doc_from_dataframe(grouped_df, dataset_name):
     event_docs = []
     i = 0
     for group_name, group_data in grouped_df:
         if pd.isnull(group_name):
             group_name = i
 
-        event_docs.extend(get_events(group_name, group_data))
+        event_docs.extend(get_events(group_name, group_data, dataset_name))
         i = i + 1
 
     return event_docs
 
-def get_docs_from_csv(file):
+def get_docs_from_csv(file, dataset_name):
 
     df = pd.read_csv(file, header=None)
     df = df.rename(columns={0: 'datetime', 1: 'street_index', 2: 'traffic', 3: 'velocity'})
@@ -68,7 +68,7 @@ def get_docs_from_csv(file):
     df.sort_values(by='street_index', inplace=True)
     grouped_df = df.groupby('street_index')
 
-    event_docs = get_doc_from_dataframe(grouped_df)
+    event_docs = get_doc_from_dataframe(grouped_df, dataset_name)
 
     return event_docs
 
