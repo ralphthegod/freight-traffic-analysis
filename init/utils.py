@@ -1,4 +1,5 @@
 import datetime
+import os
 import pandas as pd
 
 def dynamic_to_fixed_size_array(array, size):
@@ -33,6 +34,7 @@ def get_isoformat_date(dt):
 
 def get_events(group_name, group_data, dataset_name):
     events = []
+    events_csv = []
     for index, row in group_data.iterrows():
         event = {
             'metadata': { "streetId": group_name, "dataset": dataset_name },
@@ -40,20 +42,30 @@ def get_events(group_name, group_data, dataset_name):
             'traffic': row['traffic'],
             'velocity': row['velocity']
         }
+        event_csv_row = {
+            'streetId': dataset_name + '_' + str(group_name),
+            'timestamp': get_isoformat_date(row['datetime']),
+            'traffic': row['traffic'],
+            'velocity': row['velocity']
+        }
         events.append(event)
-    return events
+        events_csv.append(event_csv_row)
+    return events, events_csv
 
 def get_doc_from_dataframe(grouped_df, dataset_name):
     event_docs = []
+    event_csv = []
     i = 0
     for group_name, group_data in grouped_df:
         if pd.isnull(group_name):
             group_name = i
 
-        event_docs.extend(get_events(group_name, group_data, dataset_name))
+        res, res_csv = get_events(group_name, group_data, dataset_name)
+        event_docs.extend(res)
+        event_csv.extend(res_csv)
         i = i + 1
 
-    return event_docs
+    return event_docs, event_csv
 
 def get_docs_from_csv(file, dataset_name):
 
@@ -68,7 +80,13 @@ def get_docs_from_csv(file, dataset_name):
     df.sort_values(by='street_index', inplace=True)
     grouped_df = df.groupby('street_index')
 
-    event_docs = get_doc_from_dataframe(grouped_df, dataset_name)
+    event_docs, event_csv = get_doc_from_dataframe(grouped_df, dataset_name)
+
+    event_csv_df = pd.DataFrame(event_csv)
+    if os.path.isfile(f"./datasets/output/traffic_events.csv"):
+        event_csv_df.to_csv(f"./datasets/output/traffic_events.csv", mode='a', header=False)
+    else:
+        event_csv_df.to_csv(f"./datasets/output/traffic_events.csv", mode='w', header=True)
 
     return event_docs
 

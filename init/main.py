@@ -1,6 +1,6 @@
 from pymongo import MongoClient
 from neo4j import GraphDatabase
-from init import load_data, load_data_neo4j_traffic
+from init import load_data, load_data_neo4j_traffic, load_data_neo4j
 from dotenv import load_dotenv
 import os
 import asyncio
@@ -45,7 +45,7 @@ async def main():
             await load_data(client, driver)
             print('')
         else:
-            print('Database is not empty')
+            print('Mongodb: Database is not empty')
 
     else:
         print("MongoDB: connection refused.")
