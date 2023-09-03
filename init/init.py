@@ -75,38 +75,43 @@ async def load_data_mongo(mongo_client):
                 }
             )
     
+    # Delete old traffic events
+    if os.path.isfile(f"./datasets/output/traffic_events.csv"):
+        os.remove(f"./datasets/output/traffic_events.csv")
+
     for property_name, year_file in csvs.items():
         event_docs = iterate_csvs(year_file, property_name)
         mongo_client["ftd"]["traffic_events"].insert_many(event_docs)
-    
-    index1 = IndexModel([("metadata.streetId", ASCENDING),("metadata.dataset", ASCENDING)])
-    mongo_client["ftd"]["traffic_events"].create_indexes([index1])
+
+    mongo_client["ftd"]["traffic_events"].create_index("metadata.streetId")
             
 
-async def load_data_neo4j_traffic(driver, mongo_client, streets):
-    if streets == None:
-        street_query = """
-            MATCH (s:Street)
-            RETURN s.id AS id
-        """
-        with driver.session() as session:
-            res = session.run(street_query)
-            streets = [record['id'] for record in res]
+async def load_data_neo4j_indexes(driver):
+    street_id_index_query = """
+        CREATE INDEX street_id_index IF NOT EXISTS FOR (s:Street) ON (s.id)
+    """
+    timestamp_composite_index_query = """
+        CREATE INDEX timestamp_composite_index IF NOT EXISTS FOR (t:Timestamp) ON (t.year, t.month, t.day, t.hour, t.minute)
+    """
+    with driver.session() as session:
+        res = session.run(street_id_index_query)
+        res = session.run(timestamp_composite_index_query)
+    
 
-    for street in streets:
-        dataset = street.split('_')[0]
-        street_id = street.split('_')[1]
-        print("Neo4j: loading traffic data for " + street_id + "("+dataset+")")
-        events = mongo_client['ftd']['traffic_events'].find({"metadata.dataset": dataset, "metadata.streetId": int(street_id) })
-        for event in events:
-            query = f"""
-                MATCH (s:Street {{id: '{street}'}})
-                WITH datetime({{epochmillis: apoc.date.parse("{event['timestamp']}", "ms", "yyyy-MM-dd HH:mm:ss")}}) AS date, s
-                MERGE (t:Timestamp {{year: date.year, month: date.month, day: date.day, hour: date.hour, minute: date.minute}})
-                MERGE (s)-[e:HAS_EVENT {{traffic: {event['traffic']}, velocity: {event['velocity']}}}]->(t)
-            """
-            with driver.session() as session:
-                res = session.run(query)
+async def load_data_neo4j_traffic(driver):
+    
+    query = f"""
+        LOAD CSV FROM 'file:///traffic_events.csv' AS line
+            CALL {{
+                WITH line
+                MATCH (s:Street {{id: line[1]}})
+                WITH  datetime({{epochmillis: apoc.date.parse(line[2], "ms", "yyyy-MM-dd HH:mm:ss")}}) AS date, line, s
+                MERGE (t: Timestamp {{year: date.year, month: date.month, day: date.day, hour: date.hour, minute: date.minute}})
+                MERGE (s)-[:HAS_EVENT {{traffic: line[3], velocity: line[4]}}]->(t)
+            }} IN TRANSACTIONS OF 10000 ROWS;
+    """
+    with driver.session() as session:
+        res = session.run(query)
 
 async def load_data_neo4j(driver, mongo_client):
     # Upload road network geometry
@@ -134,24 +139,9 @@ async def load_data_neo4j(driver, mongo_client):
                 print("Neo4j: no data added.")
             print("Neo4j: query executed for " + city_name)
     
-    streets = []
+    await load_data_neo4j_indexes(driver)
 
-    street_query = """
-        MATCH (s:Street)
-        RETURN s.id AS id
-    """
-    with driver.session() as session:
-        res = session.run(street_query)
-        streets = [record['id'] for record in res]
-
-    # Create Index on Street
-    index_query = """
-        CREATE INDEX street_id_index FOR (n:Street) ON (n.id)
-    """
-    with driver.session() as session:
-        res = session.run(index_query)
-
-    await load_data_neo4j_traffic(driver, mongo_client, streets)
+    await load_data_neo4j_traffic(driver)
 
 
 async def load_data(mongo_client, neo4j_driver):
