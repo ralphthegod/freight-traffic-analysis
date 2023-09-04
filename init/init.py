@@ -147,7 +147,8 @@ async def load_data_neo4j(driver, mongo_client):
     split_query = f"""
         MATCH (n:Street)
         WITH apoc.text.split(n.id,"_") AS splitted, n
-        RETURN splitted[0], splitted[1]
+        SET n.id = splitted[1]
+        SET n.dataset = splitted[0]
     """
     with driver.session() as session:
         res = session.run(split_query)
