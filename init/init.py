@@ -143,6 +143,15 @@ async def load_data_neo4j(driver, mongo_client):
 
     await load_data_neo4j_traffic(driver)
 
+    # Split street id into dataset and id
+    split_query = f"""
+        MATCH (n:Street)
+        WITH apoc.text.split(n.id,"_") AS splitted, n
+        RETURN splitted[0], splitted[1]
+    """
+    with driver.session() as session:
+        res = session.run(split_query)
+
 
 async def load_data(mongo_client, neo4j_driver):
     if mongo_client is not None:
