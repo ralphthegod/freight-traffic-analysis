@@ -14,6 +14,9 @@ services:
       - "NEO4J_AUTH=neo4j/trullodio"
       - NEO4J_dbms_security_procedures_unrestricted=apoc.\\\*
       - NEO4J_apoc_import_file_enabled=true
+      - NEO4J_server_memory_heap_max__size=4G
+      - NEO4J_server_memory_heap_initial__size=4G
+      - NEO4J_server_memory_pagecache_size=4G
     volumes:
       - ./neo4j/plugins:/var/lib/neo4j/plugins
       - ./neo4j/data:/data
@@ -28,7 +31,7 @@ services:
     volumes:
       - ./mongo:/data/db
     ports:
-      - 27017:27017
+      - 27018:27017
 
   init:
     build: 
