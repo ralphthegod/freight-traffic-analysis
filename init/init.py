@@ -106,7 +106,7 @@ async def load_data_neo4j_traffic(driver):
                 WITH line
                 MATCH (s:Street {{id: line[1]}})
                 WITH  datetime({{epochmillis: apoc.date.parse(line[2], "ms", "yyyy-MM-dd HH:mm:ss")}}) AS date, line, s
-                MERGE (t: Timestamp {{year: date.year, month: date.month, day: date.day, hour: date.hour, minute: date.minute}})
+                MERGE (t: Timestamp {{datetime: date}})
                 MERGE (s)-[:HAS_EVENT {{traffic: line[3], velocity: line[4]}}]->(t)
             }} IN TRANSACTIONS OF 10000 ROWS;
     """

@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 import os
 import asyncio
 
+
 async def main():
     
     neo4j_url = "bolt://neo4j"
