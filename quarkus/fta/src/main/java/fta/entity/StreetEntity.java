@@ -1,18 +1,25 @@
 package fta.entity;
 
-import org.neo4j.ogm.annotation.NodeEntity;
-import org.neo4j.ogm.annotation.Relationship;
+import lombok.Getter;
+import lombok.Setter;
 
+import java.util.ArrayList;
 import java.util.List;
 
-@NodeEntity("Street")
+@Getter
+@Setter
 public class StreetEntity {
-    String id;
-    String dataset;
+    private String uuid;
+    private String id;
+    private String dataset;
+    private List<TimestampEntity> events = new ArrayList<>();
+    private List<SegmentEntity> segments = new ArrayList<>();
 
-    @Relationship(type = "HAS_EVENT")
-    List<TimestampEntity> events;
+    public void addEvent(final TimestampEntity timestamp) {
+        events.add(timestamp);
+    }
 
-    @Relationship(type = "MADE_OF")
-    List<SegmentEntity> segments;
+    public void addSegment(final SegmentEntity segment) {
+        segments.add(segment);
+    }
 }
