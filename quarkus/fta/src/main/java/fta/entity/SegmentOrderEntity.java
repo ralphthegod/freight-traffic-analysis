@@ -1,13 +1,13 @@
 package fta.entity;
 
-import org.neo4j.ogm.annotation.EndNode;
-import org.neo4j.ogm.annotation.Property;
-import org.neo4j.ogm.annotation.RelationshipEntity;
-import org.neo4j.ogm.annotation.StartNode;
+import lombok.Getter;
+import lombok.Setter;
 
-@RelationshipEntity("MADE_OF")
+@Getter
+@Setter
 public class SegmentOrderEntity {
-    @StartNode StreetEntity street;
-    @EndNode 
-    @Property int order;
+    private String uuid;
+    private StreetEntity street;
+    private SegmentEntity segment;
+    private int order;
 }
