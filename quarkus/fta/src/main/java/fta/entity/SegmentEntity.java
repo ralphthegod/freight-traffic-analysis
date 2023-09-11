@@ -1,9 +1,14 @@
 package fta.entity;
 
-import org.neo4j.ogm.annotation.NodeEntity;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import lombok.Getter;
+import lombok.Setter;
 
-@NodeEntity("Segment")
+@Getter
+@Setter
 public class SegmentEntity {
-    Double[] startCoordinates;
-    Double[] endCoordinates;
+    private String uuid;
+    @JsonIgnore private StreetEntity street;
+    private PositionEntity startCoordinates;
+    private PositionEntity endCoordinates;
 }
