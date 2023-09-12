@@ -2,13 +2,26 @@ version: '3.5'
 
 services:
 
+  backend:
+    build:
+      context: ./quarkus/fta
+      dockerfile: src/main/docker/Dockerfile.jvm
+    container_name: backend
+    hostname: backend
+    ports:
+      - "8080:8080"
+    environment:
+      - QUARKUS_NEO4J_URI=bolt://localhost:7687
+      - QUARKUS_NEO4J_AUTHENTICATION_USERNAME=neo4j
+      - QUARKUS_NEO4J_AUTHENTICATION_PASSWORD=trullodio
+
   neo4j:
     image: neo4j
     hostname: neo4j
     container_name: neo4j
     ports:
-      - 7474:7474
-      - 7687:7687
+      - "7474:7474"
+      - "7687:7687"
     environment:
       - "NEO4J_ACCEPT_LICENSE_AGREEMENT=yes"
       - "NEO4J_AUTH=neo4j/trullodio"
@@ -31,7 +44,7 @@ services:
     volumes:
       - ./mongo:/data/db
     ports:
-      - 27018:27017
+      - "27018:27017"
 
   init:
     build: 
@@ -41,7 +54,7 @@ services:
     depends_on:
       - mongo
     ports:
-      - 5000:5000
+      - "5000:5000"
     volumes:
       - ./init/datasets:/app/datasets
       - ./init/main.py:/app/main.py
@@ -56,7 +69,7 @@ services:
     depends_on:
       - mongo
     ports:
-      - 8081:8081
+      - "8081:8081"
 
   
 
