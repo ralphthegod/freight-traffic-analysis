@@ -14,6 +14,7 @@ services:
       - QUARKUS_NEO4J_URI=bolt://neo4j:7687
       - QUARKUS_NEO4J_AUTHENTICATION_USERNAME=neo4j
       - QUARKUS_NEO4J_AUTHENTICATION_PASSWORD=trullodio
+      - QUARKUS_MONGODB_CONNECTION_STRING=mongodb://mongo:27017
 
   neo4j:
     image: neo4j
