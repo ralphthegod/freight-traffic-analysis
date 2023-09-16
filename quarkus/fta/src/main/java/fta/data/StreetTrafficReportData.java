@@ -1,7 +1,7 @@
 package fta.data;
 
 public record StreetTrafficReportData(
-    Street street,
+    String streetUUID,
     int sumTraffic,
     int maxTraffic,
     int minTraffic,

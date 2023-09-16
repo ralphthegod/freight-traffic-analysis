@@ -66,14 +66,7 @@ public interface StreetMapper {
         streetTrafficReport.setMaxVelocity(neo4jRecord.get("maxVelocity").asDouble());
         final Value value = neo4jRecord.get(0);
         final Node street = value.asNode();
-        final StreetEntity streetEntity = new StreetEntity();
-        final String uuid = street.elementId();
-        final String id = street.get(STREET_ID_FIELD).asString();
-        final String dataset = street.get(STREET_DATASET_FIELD).asString();
-        streetEntity.setUuid(uuid);
-        streetEntity.setId(id);
-        streetEntity.setDataset(dataset);
-        streetTrafficReport.setStreet(streetEntity);
+        streetTrafficReport.setStreetUUID(street.elementId());
         return streetTrafficReport;
     }
 
