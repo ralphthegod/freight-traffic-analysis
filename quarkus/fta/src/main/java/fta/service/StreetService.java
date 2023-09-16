@@ -50,8 +50,8 @@ public class StreetService {
         final String dataset,
         final int first,
         final int offset,
-        final ZonedDateTime start,
-        final ZonedDateTime end
+        ZonedDateTime start,
+        ZonedDateTime end
     ) {
         return streetTrafficReportsRepository.findOrComputeStreetTrafficReports(dataset, first, offset, start, end)
             .flatMap(streetTrafficReports ->
@@ -59,8 +59,8 @@ public class StreetService {
                     .onItem()
                         .transform(streetsPageInfo -> buildStreetsTrafficReportPage(streetTrafficReports,
                             streetsPageInfo,
-                            start,
-                            end)));
+                            start.isBefore(eventUpperLimitTimestamp) ? eventLowerLimitTimestamp : start,
+                            end.isAfter(eventUpperLimitTimestamp) ? eventUpperLimitTimestamp : end)));
     }
 
     private StreetTrafficReportsPage buildStreetsTrafficReportPage(
