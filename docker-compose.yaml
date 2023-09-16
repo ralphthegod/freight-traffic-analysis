@@ -57,6 +57,7 @@ services:
     container_name: init
     depends_on:
       - mongo
+      - neo4j
     ports:
       - "5000:5000"
     volumes:
