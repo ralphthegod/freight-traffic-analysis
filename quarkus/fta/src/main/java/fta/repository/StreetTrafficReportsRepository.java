@@ -128,18 +128,10 @@ public class StreetTrafficReportsRepository implements PanacheMongoRepository<St
         final ZonedDateTime end
     ) {
         return String.format("""
-            MATCH p=(street:Street)-[event:HAS_EVENT]->(timestamp:Timestamp)
-            WHERE timestamp.datetime >= datetime("%s") AND timestamp.datetime <= datetime("%s") AND street.dataset = '%s'
-            RETURN street,
-                SUM(toInteger(event.traffic)) AS sumTraffic,
-                MAX(toInteger(event.traffic)) AS maxTraffic,
-                MIN(toInteger(event.traffic)) AS minTraffic,
-                AVG(toInteger(event.traffic)) AS avgTraffic,
-                AVG(toInteger(event.velocity)) AS avgVelocity,
-                MAX(toInteger(event.velocity)) AS maxVelocity
+            %s
             SKIP %s
             LIMIT %s
-        """, start, end, dataset, offset, first);
+        """, buildTrafficReportsBetweenQuery(dataset, start, end), offset, first);
     }
 
     private static String buildTrafficReportsBetweenQuery(
