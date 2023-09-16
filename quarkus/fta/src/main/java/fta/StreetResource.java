@@ -1,7 +1,7 @@
 package fta;
 
-import fta.data.StreetsPage;
 import fta.data.StreetTrafficReportsPage;
+import fta.data.StreetsPage;
 import fta.service.StreetService;
 import io.smallrye.mutiny.Uni;
 import jakarta.inject.Inject;
@@ -33,6 +33,11 @@ public class StreetResource {
         final ZonedDateTime start,
         final ZonedDateTime end
     ) {
-        return streetService.streetTrafficReport(dataset, first, offset, start, end);
+        return streetService.streetTrafficReports(dataset, first, offset, start, end);
+    }
+
+    @Query("streetTrafficGlobalReports")
+    public Uni<StreetTrafficReportsPage> getStreetTrafficGlobalReports(final String dataset, final int first, final int offset) {
+        return streetService.streetTrafficGlobalReports(dataset, first, offset);
     }
 }

@@ -13,9 +13,10 @@ import org.bson.conversions.Bson;
 
 import java.util.List;
 
+import static fta.repository.MongoConstants.FTD_DATABASE_NAME;
+
 @ApplicationScoped
 public class DatasetInfoRepository implements PanacheMongoRepository<DatasetInfoEntity> {
-    public static final String FTD_DATABASE_NAME = "ftd";
     @Inject MongoClient mongoClient;
 
     public void refreshDatasetInfoMaterializedView() {

@@ -1,12 +1,13 @@
 package fta.entity;
 
+import io.quarkus.mongodb.panache.PanacheMongoEntity;
 import lombok.Getter;
 import lombok.Setter;
 
 @Getter
 @Setter
-public class StreetTrafficReport {
-    private StreetEntity street;
+public class StreetTrafficReport extends PanacheMongoEntity {
+    private String streetUUID;
     private int sumTraffic;
     private int maxTraffic;
     private int minTraffic;

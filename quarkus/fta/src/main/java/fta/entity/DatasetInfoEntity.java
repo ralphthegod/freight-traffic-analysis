@@ -6,7 +6,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import static fta.entity.DatasetInfoEntity.COLLECTION_NAME;
-import static fta.repository.DatasetInfoRepository.FTD_DATABASE_NAME;
+import static fta.repository.MongoConstants.FTD_DATABASE_NAME;
 
 @EqualsAndHashCode(callSuper = true)
 @Data
