@@ -3,11 +3,9 @@ package fta.service;
 import fta.data.*;
 import fta.entity.StreetEntity;
 import fta.entity.StreetTrafficReport;
-import fta.entity.StreetTrafficReportsEntity;
 import fta.mapper.StreetMapper;
 import fta.repository.StreetRepository;
 import fta.repository.StreetTrafficReportsRepository;
-import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -15,8 +13,6 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import java.time.ZonedDateTime;
 import java.util.List;
-import java.util.Optional;
-import java.util.function.Function;
 
 @ApplicationScoped
 public class StreetService {
@@ -59,19 +55,21 @@ public class StreetService {
     ) {
         return streetTrafficReportsRepository
             .findByDatasetBetween(dataset, first, offset, start, end)
-            .flatMap(optionalStreetTrafficReports ->
-                optionalStreetTrafficReports.isPresent()
-                    ? Uni.createFrom().item(optionalStreetTrafficReports.get().getStreetTrafficReports())
-                    : streetRepository.buildStreetTrafficReports(dataset, first, offset, start, end)
-                        .collect()
-                        .asList())
+            .flatMap(optionalStreetTrafficReports -> optionalStreetTrafficReports.isPresent()
+                ? Uni.createFrom().item(optionalStreetTrafficReports.get().getStreetTrafficReports())
+                : streetTrafficReportsRepository.buildStreetTrafficReports(dataset, first, offset, start, end)
+                    .collect()
+                    .asList()
+                    .onItem()
+                    .invoke(trafficReports -> streetTrafficReportsRepository
+                        .persistTrafficReports(trafficReports, start, end, dataset)))
             .flatMap(streetTrafficReports ->
-                    buildStreetsPageInfoFrom(dataset, first, offset)
-                        .onItem()
-                            .transform(streetsPageInfo -> buildStreetsTrafficReportPage(streetTrafficReports,
-                                    streetsPageInfo,
-                                    start,
-                                    end)));
+                buildStreetsPageInfoFrom(dataset, first, offset)
+                    .onItem()
+                        .transform(streetsPageInfo -> buildStreetsTrafficReportPage(streetTrafficReports,
+                                streetsPageInfo,
+                                start,
+                                end)));
     }
 
     private StreetTrafficReportsPage buildStreetsTrafficReportPage(
