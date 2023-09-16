@@ -17,19 +17,19 @@ public class StreetService {
     @Inject StreetRepository streetRepository;
     @Inject StreetMapper streetMapper;
 
-    public Uni<StreetsPage> getStreets(int first, int offset) {
-        return streetRepository.findStreets(first, offset)
+    public Uni<StreetsPage> getStreets(final String dataset, final int first, final int offset) {
+        return streetRepository.findStreets(dataset, first, offset)
             .collect()
             .asList()
             .flatMap(streets ->
-                buildStreetsPageInfoFrom(first, offset)
+                buildStreetsPageInfoFrom(dataset, first, offset)
                     .onItem()
                         .transform(streetsPageInfo -> buildStreetsPage(streets, streetsPageInfo))
             );
     }
 
-    private Uni<StreetsPageInfo> buildStreetsPageInfoFrom(final int first, final int offset) {
-        return streetRepository.streetsPageInfoFrom(first, offset);
+    private Uni<StreetsPageInfo> buildStreetsPageInfoFrom(final String dataset, final int first, final int offset) {
+        return streetRepository.streetsPageInfoFrom(dataset, first, offset);
     }
 
     private StreetsPage buildStreetsPage(final List<StreetEntity> streetsEntity, final StreetsPageInfo streetsPageInfo) {
@@ -40,16 +40,17 @@ public class StreetService {
     }
 
     public Uni<StreetTrafficReportsPage> streetTrafficReport(
+        final String dataset,
         final int first,
         final int offset,
         final ZonedDateTime start,
         final ZonedDateTime end
     ) {
-        return streetRepository.buildStreetTrafficReports(first, offset, start, end)
+        return streetRepository.buildStreetTrafficReports(dataset, first, offset, start, end)
             .collect()
             .asList()
             .flatMap(streetTrafficReports ->
-                buildStreetsPageInfoFrom(first, offset)
+                buildStreetsPageInfoFrom(dataset, first, offset)
                     .onItem()
                         .transform(streetsPageInfo -> buildStreetsTrafficReportPage(streetTrafficReports,
                                     streetsPageInfo,

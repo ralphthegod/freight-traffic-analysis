@@ -18,19 +18,21 @@ public class StreetResource {
 
     @Query(value = "streetsPage")
     public Uni<StreetsPage> getStreets(
+        final String dataset,
         final int first,
         @DefaultValue(value = "0") final Integer offset
     ) {
-        return streetService.getStreets(first, offset);
+        return streetService.getStreets(dataset, first, offset);
     }
 
     @Query
     public Uni<StreetTrafficReportsPage> getStreetTrafficReports(
+        final String dataset,
         final int first,
         final int offset,
         final ZonedDateTime start,
         final ZonedDateTime end
     ) {
-        return streetService.streetTrafficReport(first, offset, start, end);
+        return streetService.streetTrafficReport(dataset, first, offset, start, end);
     }
 }

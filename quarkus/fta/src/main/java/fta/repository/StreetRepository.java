@@ -9,7 +9,7 @@ import io.smallrye.mutiny.Uni;
 import java.time.ZonedDateTime;
 
 public interface StreetRepository {
-    Multi<StreetEntity> findStreets(int first, int offset);
-    Multi<StreetTrafficReport> buildStreetTrafficReports(int first, int offset, ZonedDateTime start, ZonedDateTime end);
-    Uni<StreetsPageInfo> streetsPageInfoFrom(int first, int offset);
+    Multi<StreetEntity> findStreets(String dataset, int first, int offset);
+    Multi<StreetTrafficReport> buildStreetTrafficReports(String dataset, int first, int offset, ZonedDateTime start, ZonedDateTime end);
+    Uni<StreetsPageInfo> streetsPageInfoFrom(String dataset, int first, int offset);
 }

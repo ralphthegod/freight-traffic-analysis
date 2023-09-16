@@ -24,6 +24,7 @@ public class StreetRepositoryNeo4j implements StreetRepository {
 
     private static final int STREET_UNIT = 5;
     private static String buildTrafficReportsBetweenQuery(
+        final String dataset,
         final int first,
         final int offset,
         final ZonedDateTime start,
@@ -31,7 +32,7 @@ public class StreetRepositoryNeo4j implements StreetRepository {
     ) {
         return String.format("""
             MATCH p=(street:Street)-[event:HAS_EVENT]->(timestamp:Timestamp)
-            WHERE timestamp.datetime >= datetime("%s") AND timestamp.datetime <= datetime("%s")
+            WHERE timestamp.datetime >= datetime("%s") AND timestamp.datetime <= datetime("%s") AND street.dataset = '%s'
             RETURN street,
                 SUM(toInteger(event.traffic)) AS sumTraffic,
                 MAX(toInteger(event.traffic)) AS maxTraffic,
@@ -41,20 +42,25 @@ public class StreetRepositoryNeo4j implements StreetRepository {
                 MAX(toInteger(event.velocity)) AS maxVelocity
             SKIP %s
             LIMIT %s
-        """, start, end, offset, first);
+        """, start, end, dataset, offset, first);
     }
-    private static String buildFindStreetsPageQuery(final int first, final int offset) {
-        return String.format("MATCH p=()-[r:MADE_OF]->() RETURN p SKIP %s LIMIT %s",
+    private static String buildFindStreetsPageQuery(final String dataset, final int first, final int offset) {
+        return String.format("MATCH p=(s:Street)-[r:MADE_OF]->() WHERE s.dataset = '%s' RETURN p SKIP %s LIMIT %s",
+            dataset,
             offset * STREET_UNIT,
             first * STREET_UNIT);
     }
-    private static String buildStreetsPageInfoQuery(final int first, final int offset) {
-        return String.format("MATCH p=(s:Street) RETURN COUNT(*) AS totalCount, COUNT(*) - %s > 0 AS hasNextPage", first + offset);
+    private static String buildStreetsPageInfoQuery(final String dataset, final int first, final int offset) {
+        return String.format("""
+            MATCH p=(s:Street)
+            WHERE s.dataset = '%s'
+            RETURN COUNT(*) AS totalCount, COUNT(*) - %s > 0 AS hasNextPage""",
+            dataset, first + offset);
     }
 
     @Override
-    public Multi<StreetEntity> findStreets(final int first, final int offset) {
-        return Neo4jReactiveSessions.executeRead(driver, buildFindStreetsPageQuery(first, offset))
+    public Multi<StreetEntity> findStreets(final String dataset, final int first, final int offset) {
+        return Neo4jReactiveSessions.executeRead(driver, buildFindStreetsPageQuery(dataset, first, offset))
             .group()
             .by(StreetRepositoryNeo4j::getStreetIdFromRecord)
             .onItem()
@@ -67,19 +73,20 @@ public class StreetRepositoryNeo4j implements StreetRepository {
 
     @Override
     public Multi<StreetTrafficReport> buildStreetTrafficReports(
+        final String dataset,
         final int first,
         final int offset,
         final ZonedDateTime start,
         final ZonedDateTime end
     ) {
-        return Neo4jReactiveSessions.executeRead(driver, buildTrafficReportsBetweenQuery(first, offset, start, end))
+        return Neo4jReactiveSessions.executeRead(driver, buildTrafficReportsBetweenQuery(dataset, first, offset, start, end))
             .onItem()
             .transform(streetMapper::toStreetTrafficReport);
     }
 
     @Override
-    public Uni<StreetsPageInfo> streetsPageInfoFrom(final int first, final int offset) {
-        return Neo4jReactiveSessions.executeRead(driver, buildStreetsPageInfoQuery(first, offset))
+    public Uni<StreetsPageInfo> streetsPageInfoFrom(final String dataset, final int first, final int offset) {
+        return Neo4jReactiveSessions.executeRead(driver, buildStreetsPageInfoQuery(dataset, first, offset))
             .toUni()
             .map(record -> {
                 final Value totalCount = record.get(0);
