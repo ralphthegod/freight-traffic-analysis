@@ -43,11 +43,7 @@ public class StreetTrafficReportsRepository implements PanacheMongoRepository<St
         return streetReportsCollection
             .aggregate(pipeline, StreetTrafficReportsEntity.class)
             .toUni()
-            .map(Optional::ofNullable)
-            .invoke(opt -> {
-                int a = 1;
-                int b = 2;
-            });
+            .map(Optional::ofNullable);
     }
 
     private static List<Bson> buildFindByDatasetBetweenPipeline(
@@ -103,11 +99,11 @@ public class StreetTrafficReportsRepository implements PanacheMongoRepository<St
     }
 
     private static String buildTrafficReportsBetweenQuery(
-            final String dataset,
-            final int first,
-            final int offset,
-            final ZonedDateTime start,
-            final ZonedDateTime end
+        final String dataset,
+        final int first,
+        final int offset,
+        final ZonedDateTime start,
+        final ZonedDateTime end
     ) {
         return String.format("""
             MATCH p=(street:Street)-[event:HAS_EVENT]->(timestamp:Timestamp)
