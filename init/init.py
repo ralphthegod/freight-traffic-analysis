@@ -88,13 +88,17 @@ async def load_data_mongo(mongo_client):
 
 async def load_data_neo4j_indexes(driver):
     street_id_index_query = """
-        CREATE INDEX street_id_index IF NOT EXISTS FOR (s:Street) ON (s.id)
+        CREATE RANGE INDEX street_id_index IF NOT EXISTS FOR (s:Street) ON (s.id)
+    """
+    street_dataset_index_query = """
+        CREATE RANGE INDEX street_dataset_index IF NOT EXISTS FOR (s:Street) ON (s.dataset)
     """
     timestamp_composite_index_query = """
-        CREATE INDEX timestamp_composite_index IF NOT EXISTS FOR (t:Timestamp) ON (t.year, t.month, t.day, t.hour, t.minute)
+        CREATE RANGE INDEX timestamp_composite_index IF NOT EXISTS FOR (t:Timestamp) ON (t.datetime)
     """
     with driver.session() as session:
         res = session.run(street_id_index_query)
+        res = session.run(street_dataset_index_query)
         res = session.run(timestamp_composite_index_query)
     
 
