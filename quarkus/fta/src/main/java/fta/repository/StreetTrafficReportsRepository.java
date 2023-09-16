@@ -30,6 +30,23 @@ public class StreetTrafficReportsRepository implements PanacheMongoRepository<St
     Driver neo4jDriver;
     @Inject StreetMapper streetMapper;
 
+    public Uni<List<StreetTrafficReport>> findOrComputeStreetTrafficReports(
+        final String dataset,
+        final int first,
+        final int offset,
+        final ZonedDateTime start,
+        final ZonedDateTime end
+    ) {
+        return findByDatasetBetween(dataset, first, offset, start, end)
+            .flatMap(optionalStreetTrafficReports -> optionalStreetTrafficReports.isPresent()
+                ? Uni.createFrom().item(optionalStreetTrafficReports.get().getStreetTrafficReports())
+                : buildStreetTrafficReports(dataset, first, offset, start, end)
+                    .collect()
+                    .asList()
+                    .onItem()
+                    .invoke(trafficReports -> persistTrafficReports(trafficReports, start, end, dataset)));
+    }
+
     public Uni<Optional<StreetTrafficReportsEntity>> findByDatasetBetween(
         final String dataset,
         final int first,

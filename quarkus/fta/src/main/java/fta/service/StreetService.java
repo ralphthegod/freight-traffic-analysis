@@ -53,23 +53,14 @@ public class StreetService {
         final ZonedDateTime start,
         final ZonedDateTime end
     ) {
-        return streetTrafficReportsRepository
-            .findByDatasetBetween(dataset, first, offset, start, end)
-            .flatMap(optionalStreetTrafficReports -> optionalStreetTrafficReports.isPresent()
-                ? Uni.createFrom().item(optionalStreetTrafficReports.get().getStreetTrafficReports())
-                : streetTrafficReportsRepository.buildStreetTrafficReports(dataset, first, offset, start, end)
-                    .collect()
-                    .asList()
-                    .onItem()
-                    .invoke(trafficReports -> streetTrafficReportsRepository
-                        .persistTrafficReports(trafficReports, start, end, dataset)))
+        return streetTrafficReportsRepository.findOrComputeStreetTrafficReports(dataset, first, offset, start, end)
             .flatMap(streetTrafficReports ->
                 buildStreetsPageInfoFrom(dataset, first, offset)
                     .onItem()
                         .transform(streetsPageInfo -> buildStreetsTrafficReportPage(streetTrafficReports,
-                                streetsPageInfo,
-                                start,
-                                end)));
+                            streetsPageInfo,
+                            start,
+                            end)));
     }
 
     private StreetTrafficReportsPage buildStreetsTrafficReportPage(
