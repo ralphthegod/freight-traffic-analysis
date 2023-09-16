@@ -14,8 +14,7 @@ import java.time.ZonedDateTime;
 @GraphQLApi
 public class StreetResource {
 
-    @Inject
-    StreetService streetService;
+    @Inject StreetService streetService;
 
     @Query
     public Uni<StreetsPage> getStreets(
