@@ -16,7 +16,7 @@ public class StreetResource {
 
     @Inject StreetService streetService;
 
-    @Query
+    @Query(value = "streetsPage")
     public Uni<StreetsPage> getStreets(
         final int first,
         @DefaultValue(value = "0") final Integer offset
