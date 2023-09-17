@@ -13,6 +13,7 @@ services:
     ports:
       - "8080:8080"
     environment:
+      - QUARKUS_HTTP_PORT=8080
       - QUARKUS_HTTP_CORS=true
       - QUARKUS_NEO4J_URI=bolt://neo4j:7687
       - QUARKUS_NEO4J_AUTHENTICATION_USERNAME=neo4j
